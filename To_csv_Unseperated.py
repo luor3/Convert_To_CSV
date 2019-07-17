@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import re
-import docx 
+import zipfile
 import importlib
 import os
 import pandas as pd
@@ -9,6 +9,7 @@ import win32com.client
 importlib.reload(sys)
 
 
+from xml.etree.cElementTree import XML
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
@@ -71,12 +72,12 @@ def pdf_to_txt(path):
     device.close()
     retstr.close()
     
-    combined = " ".join(fullTxt)
+    combined_text = " ".join(fullTxt)
     
     rep = dict((re.escape(k), v) for k, v in replacements.items())
     pattern = re.compile("|".join(rep.keys()))
     
-    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], combined)
+    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], combined_text)
     
      
     return my_str
@@ -84,28 +85,25 @@ def pdf_to_txt(path):
 
 def docx_converter(path):
     
-    fullText = []
-    # open the docx file
-    doc = docx.Document(path)
-    
-    section = doc.sections[0]
-    
-    header = section.header
-    
-    for paragraph in header.paragraphs:
-        fullText.append(paragraph.text)
-    #
-    # read the doc file
-    for paragraph in doc.paragraphs:
-        
-        fullText.append(paragraph.text)
-    
-    combined = " ".join(fullText)
-    
+    WORD_NAMESPACE = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+    PARA = WORD_NAMESPACE + 'p'
+    TEXT = WORD_NAMESPACE + 't'
+
+    document = zipfile.ZipFile(path)
+    xml_content = document.read('word/document.xml')
+    document.close()
+    tree = XML(xml_content)
+
+    paragraphs = []
+    for paragraph in tree.getiterator(PARA):
+        texts = [n.text for n in paragraph.getiterator(TEXT) if n.text]
+        if texts:
+            paragraphs.append(''.join(texts))
+
     rep = dict((re.escape(k), v) for k, v in replacements.items())
     pattern = re.compile("|".join(rep.keys()))
     
-    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], combined)
+    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], ' '.join(paragraphs))
     
 
     return my_str
