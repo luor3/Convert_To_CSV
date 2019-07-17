@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
+import re
 import docx 
 import importlib
 import os
@@ -13,6 +14,22 @@ from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 from io import StringIO
+
+replacements = {
+        "▪":"", 
+        "":"", 
+        "–":"-",
+        "":"",
+        "’":"'",
+        "·":"",
+        "●":"",
+        "•":"",
+        "“":"'",
+        "”":"'",
+        "é":"e",
+        "\n":"",
+        "\r":""
+        }
 
 def pdf_to_txt(path):
     fullTxt = []
@@ -46,19 +63,7 @@ def pdf_to_txt(path):
         
         interpreter.process_page(page)
 
-    fullTxt.append(retstr.getvalue().replace("▪", "").\
-                                     replace("", "").\
-                                     replace("–", "-").\
-                                     replace("", "").\
-                                     replace("’", "'").\
-                                     replace("·", "").\
-                                     replace("●", "").\
-                                     replace("•", "").\
-                                     replace("“", "'").\
-                                     replace("”", "'").\
-                                     replace("é", "e").\
-                                     replace("\n","").\
-                                     replace("\r","")
+    fullTxt.append(retstr.getvalue()
     )
     
 
@@ -68,7 +73,13 @@ def pdf_to_txt(path):
     
     combined = " ".join(fullTxt)
     
-    return combined
+    rep = dict((re.escape(k), v) for k, v in replacements.items())
+    pattern = re.compile("|".join(rep.keys()))
+    
+    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], combined)
+    
+     
+    return my_str
 
 
 def docx_converter(path):
@@ -87,24 +98,17 @@ def docx_converter(path):
     # read the doc file
     for paragraph in doc.paragraphs:
         
-        fullText.append(paragraph.text.replace("▪", "").\
-                                           replace("", "").\
-                                           replace("–", "-").\
-                                           replace("", "").\
-                                           replace("’", "'").\
-                                           replace("·", "").\
-                                           replace("●", "").\
-                                           replace("•", "").\
-                                           replace("“", "'").\
-                                           replace("”", "'").\
-                                           replace("é", "e").\
-                                           replace("\n","").\
-                                           replace("\r","")                                    
-        )
+        fullText.append(paragraph.text)
     
     combined = " ".join(fullText)
+    
+    rep = dict((re.escape(k), v) for k, v in replacements.items())
+    pattern = re.compile("|".join(rep.keys()))
+    
+    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], combined)
+    
 
-    return combined
+    return my_str
 
 
 def doc_to_docx(path):
