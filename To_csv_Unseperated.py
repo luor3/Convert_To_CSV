@@ -17,19 +17,20 @@ from pdfminer.pdfpage import PDFPage
 from io import StringIO
 
 replacements = {
-        "▪":"", 
-        "":"", 
+        "▪":" ", 
+        "":" ", 
         "–":"-",
-        "":"",
+        "":" ",
         "’":"'",
-        "·":"",
-        "●":"",
-        "•":"",
+        "·":" ",
+        "●":" ",
+        "•":" ",
         "“":"'",
         "”":"'",
-        "é":"e",
-        "\n":"",
-        "\r":""
+        "\n":" ",
+        "\r":" ",
+        "\xa0":" ",
+        "\xc0":" "
         }
 
 def pdf_to_txt(path):
@@ -99,7 +100,7 @@ def docx_converter(path):
         texts = [n.text for n in paragraph.getiterator(TEXT) if n.text]
         if texts:
             paragraphs.append(''.join(texts))
-
+            
     rep = dict((re.escape(k), v) for k, v in replacements.items())
     pattern = re.compile("|".join(rep.keys()))
     
@@ -133,7 +134,7 @@ def main():
     
     folder_path = "C:\\Users\\raymond\\Desktop\\resumes"
     partial_path = "C:\\Users\\raymond\\Desktop\\resumes\\"
-    df = pd.DataFrame(columns = ["Filename", "Content", "Received_interview"])
+    df = pd.DataFrame(columns=["Filename", "Content", "Received_interview"])
     #
     # read all subfolder in the folder
     for subfolder in os.listdir(folder_path):
@@ -196,7 +197,7 @@ def main():
                     )
             
                 
-    df.to_csv("C:\\Users\\raymond\\Desktop\\labelled_resumes.csv", index=False)
+    df.to_csv("C:\\Users\\raymond\\Desktop\\labeled_resumes.csv", index=False)
     
     return
             
