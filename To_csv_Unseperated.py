@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 import sys
 import re
-import zipfile
 import importlib
 import os
 import pandas as pd
 import win32com.client
 importlib.reload(sys)
+import docx
 
-
-from xml.etree.cElementTree import XML
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
@@ -86,54 +84,50 @@ def pdf_to_txt(path):
 
 def docx_converter(path):
     
-    WORD_NAMESPACE = '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
-    PARA = WORD_NAMESPACE + 'p'
-    TEXT = WORD_NAMESPACE + 't'
-
-    document = zipfile.ZipFile(path)
-    xml_content = document.read('word/document.xml')
-    document.close()
-    tree = XML(xml_content)
-
-    paragraphs = []
-    for paragraph in tree.getiterator(PARA):
-        texts = [n.text for n in paragraph.getiterator(TEXT) if n.text]
-        if texts:
-            paragraphs.append(''.join(texts))
-            
+    Doc = docx.Document(path)
+    
+    fullText = []
+    
+    for paragraph in Doc.paragraphs:
+        fullText.append(paragraph.text)
+        
     rep = dict((re.escape(k), v) for k, v in replacements.items())
+    
     pattern = re.compile("|".join(rep.keys()))
     
-    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], ' '.join(paragraphs))
+    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], ' '.join(fullText))
     
-
     return my_str
 
 
-def doc_to_docx(path):
+def doc_converter(path):
     
-    w = win32com.client.Dispatch('Word.Application')
+    fullText = []
     
-    w.Visible = 0
-    w.DisplayAlerts = 0
-    
-    doc = w.Documents.Open(path)
-    
-    newpath = os.path.splitext(path)[0] + '.docx'
-    
-    doc.SaveAs(newpath, 12, False, "", True, "", False, False, False, False)
+    app = win32com.client.Dispatch('Word.Application')
+    app.Visible = False 
+    app.Documents.Open(path)
+
+    doc = app.ActiveDocument
+  
+    fullText.append(doc.Content.Text)
     
     doc.Close()
-    w.Quit()
-    os.remove(path)
+    app.Quit()
     
-    return newpath
+    rep = dict((re.escape(k), v) for k, v in replacements.items())
+    
+    pattern = re.compile("|".join(rep.keys()))
+    
+    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], ' '.join(fullText))
+    
+    return my_str
 
 
 def main():
     
-    folder_path = "C:\\Users\\raymond\\Desktop\\resumes"
-    partial_path = "C:\\Users\\raymond\\Desktop\\resumes\\"
+    folder_path = "C:\\Users\\raymond\\Desktop\\1"
+    partial_path = "C:\\Users\\raymond\\Desktop\\1\\"
     df = pd.DataFrame(columns=["Filename", "Content", "Received_interview"])
     #
     # read all subfolder in the folder
@@ -150,7 +144,7 @@ def main():
             file_extension = os.path.splitext(file_path)[1]
             #
             # if the filename type is pdf
-            if file_extension == ".pdf":
+            if file_extension == ".pdf1":
                 
                 output = pdf_to_txt(file_path)               
                 # subfolder will be named as 0Big4_noInterview, subfolder[0] will return
@@ -168,8 +162,6 @@ def main():
             # the file type is docx
             elif file_extension == ".docx":
                 
-                docx_converter(file_path)
-                
                 output = docx_converter(file_path)
                 
                 df = df.append(
@@ -182,10 +174,11 @@ def main():
                     )
                 
             elif file_extension == ".doc":
+                output = doc_converter(file_path)
                 
-                new_path = doc_to_docx(file_path)
-                
-                output = docx_converter(new_path)
+#                new_path = doc_to_docx(file_path)
+#                
+#                output = docx_converter(new_path)
                 
                 df = df.append(
                             {
