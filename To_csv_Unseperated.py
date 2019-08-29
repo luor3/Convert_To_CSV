@@ -7,6 +7,7 @@ import pandas as pd
 import win32com.client
 importlib.reload(sys)
 import docx
+import PyPDF2
 
 from pdfminer.pdfinterp import PDFResourceManager, PDFPageInterpreter
 from pdfminer.converter import TextConverter
@@ -32,53 +33,22 @@ replacements = {
         }
 
 def pdf_to_txt(path):
-    fullTxt = []
-    
-    rsrcmgr = PDFResourceManager()
-    
-    retstr = StringIO()
-    
-    codec = 'utf-8'
-    
-    laparams = LAParams()
-    
-    device = TextConverter(rsrcmgr, retstr, codec=codec, laparams=laparams)
-    
-    fp = open(path, 'rb')
-    interpreter = PDFPageInterpreter(rsrcmgr, device)
-    
-    password = ""
-    maxpages = 0
-    caching = True
-    pagenos=set()
 
-    for page in PDFPage.get_pages(
-                                  fp, 
-                                  pagenos, 
-                                  maxpages=maxpages,     
-                                  password=password,
-                                  caching=caching, 
-                                  check_extractable=True
-    ):
-        
-        interpreter.process_page(page)
-
-    fullTxt.append(retstr.getvalue()
-    )
+    fullText = []
+    file = open(path, "rb")
     
-
-    fp.close()
-    device.close()
-    retstr.close()
+    fileReader = PyPDF2.PdfFileReader(file)
     
-    combined_text = " ".join(fullTxt)
+    for pageNum in range(fileReader.numPages):
+        pageObj = fileReader.getPage(pageNum)
+        fullText.append(pageObj.extractText())
     
     rep = dict((re.escape(k), v) for k, v in replacements.items())
+    
     pattern = re.compile("|".join(rep.keys()))
     
-    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], combined_text)
+    my_str = pattern.sub(lambda m: rep[re.escape(m.group(0))], ' '.join(fullText))
     
-     
     return my_str
 
 
@@ -144,7 +114,7 @@ def main():
             file_extension = os.path.splitext(file_path)[1]
             #
             # if the filename type is pdf
-            if file_extension == ".pdf1":
+            if file_extension == ".pdf":
                 
                 output = pdf_to_txt(file_path)               
                 # subfolder will be named as 0Big4_noInterview, subfolder[0] will return
